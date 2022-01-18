@@ -16,34 +16,53 @@ START = 0
 PRO_FIN = 1
 WORK_FIN = 2
 FINISH = 3
+#工匠属性及配方属性
+class Configuration:
+    def __init__(self, Craftsmanship, Control, CP, Progress, Quality, Durability):
+        #作业精度 Craftsmanship
+        self.Craftsmanship = Craftsmanship
+        #加工精度 Control
+        self.Control = Control
+        #制作力 CP
+        self.CP = CP
+        #作业进度 Progress
+        self.Progress = Progress
+        #品质 Quality
+        self.Quality = Quality
+        #耐久 Durability
+        self.Durability = Durability
+
+#进行中的状态：
+class Status:
+    def __init__(self,Step=1):
+        #工次 step
+        self.Step=Step
+
 
 class MyFirstGUI:
     def __init__(self, master):
         self.master = master
-        master.title("四期高难人力轮椅  by Tg狼人@柔风海湾")
+        master.title("四期高难人力轮椅  by Tg狼人@银泪湖")
         
         self.window_width=300
         
-        self.Gongci = 1
+        self.Status = Status(Step=1)
+        
         self.Stage = START
         self.work_eff = 0
         self.work_eff_all = 2570
         
+        self.Config = Configuration(Craftsmanship=2758, Control=2901, CP=651, Progress=12046, Quality=81447, Durability=55)
         
+        self.now_CP = self.Config.CP
+        self.work = 0.8* (0.21 * self.Config.Craftsmanship + 2) * (10000 + self.Config.Craftsmanship) / (10000 + 2620)
         
-        self.CP = 651
-        self.CP_now = self.CP
+        self.pro = 0.6 * (0.35 * self.Config.Control + 35) * (10000 + self.Config.Control) / (10000 + 2540)
+       
         
-        self.work_acc = 2758
-        self.work = 0.8* (0.21 * self.work_acc + 2) * (10000 + self.work_acc) / (10000 + 2620)
-        self.pro_acc = 2901
-        self.pro = 0.6 * (0.35 * self.pro_acc + 35) * (10000 + self.pro_acc) / (10000 + 2540)
-        self.dur = 55
-        self.workMax = 12046
-        self.proMax = 81447
         self.work_now = 0
         self.pro_now = 0
-        self.dur_now = 55
+        self.Durability_now = 55
         
         self.Neijing = 0
         self.Zhangwo = 0
@@ -61,14 +80,14 @@ class MyFirstGUI:
         self.ball_button[BAIQIU].select()
         self.recommend_label = Label(master, text="推荐技能：闲静")
 
-        self.buff_label = Label(master, text="四期高难模拟器  by Tg狼人@柔风海湾")
+        self.buff_label = Label(master, text="四期高难模拟器  by Tg狼人@银泪湖")
         self.canvas_label = Label(master, text="进展\n品质\n耐久\nCP")
         self.canvas = Canvas(master, bg='white', height=80, width=self.window_width)
         
-        self.work_rec = self.canvas.create_rectangle(0, 0, self.work_now/self.workMax*self.window_width, 19, width=0, fill='green')
-        self.pro_rec = self.canvas.create_rectangle(0, 20, self.pro_now/self.proMax*self.window_width, 39, width=0, fill='red')
-        self.dur_rec = self.canvas.create_rectangle(0, 40, self.dur_now/self.dur*self.window_width, 59, width=0, fill='purple')
-        self.CP_rec = self.canvas.create_rectangle(0, 60, self.CP_now/self.CP*self.window_width, 80, width=0, fill='green')
+        self.work_rec = self.canvas.create_rectangle(0, 0, self.work_now/self.Config.Progress*self.window_width, 19, width=0, fill='green')
+        self.pro_rec = self.canvas.create_rectangle(0, 20, self.pro_now/self.Config.Quality*self.window_width, 39, width=0, fill='red')
+        self.Durability_rec = self.canvas.create_rectangle(0, 40, self.Durability_now/self.Config.Durability*self.window_width, 59, width=0, fill='purple')
+        self.CP_rec = self.canvas.create_rectangle(0, 60, self.now_CP/self.Config.CP*self.window_width, 80, width=0, fill='green')
         
         
         self.canvas_data = Label(master, text= self.getDataText())
@@ -146,7 +165,7 @@ class MyFirstGUI:
         
         
     def xianjing(self):
-        if self.Gongci>1:
+        if self.Status.Step>1:
             print("闲静错误：只能在第一回合使用")
             return
         print("闲静")
@@ -192,7 +211,7 @@ class MyFirstGUI:
             return
         print("掌握")
         self.Zhangwo = 9 + 2 * if_changchixu
-        self.dur_now-= 5
+        self.Durability_now-= 5
         self.update_status()
     
     def kuobuj(self):
@@ -317,13 +336,13 @@ class MyFirstGUI:
         self.update_status()
     
     def exe(self, work_eff, pro_eff, dur_cost, CP_cost):
-        if self.CP_now < self.cal_CP_cost(CP_cost):
+        if self.now_CP < self.cal_CP_cost(CP_cost):
             print("CP不够！")
             return 0
         self.work_now += self.cal_work(work_eff)
         self.pro_now += self.cal_pro(pro_eff)
-        self.dur_now = min(self.dur_now - self.cal_dur(dur_cost), self.dur)
-        self.CP_now = min(self.CP_now - self.cal_CP_cost(CP_cost), self.CP)
+        self.Durability_now = min(self.Durability_now - self.cal_dur(dur_cost), self.Config.Durability)
+        self.now_CP = min(self.now_CP - self.cal_CP_cost(CP_cost), self.Config.CP)
         self.update_recommend()
         return 1
 
@@ -351,7 +370,7 @@ class MyFirstGUI:
         if_dajinzhan = 0
         if self.ball == DAJINZHAN:
             if_dajinzhan = 1
-        self.work = math.floor(0.8* (0.21 * self.work_acc + 2) * (10000 + self.work_acc) / (10000 + 2620.0) * (1 + 0.5 * if_dajinzhan))
+        self.work = math.floor(0.8* (0.21 * self.Config.Craftsmanship + 2) * (10000 + self.Config.Craftsmanship) / (10000 + 2620.0) * (1 + 0.5 * if_dajinzhan))
         self.work_eff += math.floor(eff* (1 + 0.5*Chongjing_flag) * (1 + 0.5 * if_dajinzhan))
         return math.floor(self.work * eff/100 * (1 + 0.5*Chongjing_flag))
      
@@ -362,7 +381,7 @@ class MyFirstGUI:
             if_hongqiu= 1
         if eff>0:
             self.Kuobu = 0
-        temp_pro_acc = math.floor(self.pro_acc * (1 + 0.2 * max(self.Neijing-1,0)))
+        temp_pro_acc = math.floor(self.Config.Control * (1 + 0.2 * max(self.Neijing-1,0)))
         self.pro = math.floor(0.6 * (0.35 * temp_pro_acc + 35) * (10000 + temp_pro_acc) / (10000.0 + 2540.0) * (1 + 0.5 * if_hongqiu))
         return math.floor(self.pro * eff/100.0 * (1 + 0.5 * Gaige_flag + Kuobu_flag))
         
@@ -380,10 +399,10 @@ class MyFirstGUI:
         return math.ceil(cost/(1 + if_lvqiu))
         
     def getDataText(self):
-        DataText = str(self.work_now) + "/" + str(self.workMax) + "\n"
-        DataText += str(self.pro_now) + "/" + str(self.proMax) + "\n"
-        DataText += str(self.dur_now) + "/" + str(self.dur) + "\n"
-        DataText += str(self.CP_now) + "/" + str(self.CP)
+        DataText = str(self.work_now) + "/" + str(self.Config.Progress) + "\n"
+        DataText += str(self.pro_now) + "/" + str(self.Config.Quality) + "\n"
+        DataText += str(self.Durability_now) + "/" + str(self.Config.Durability) + "\n"
+        DataText += str(self.now_CP) + "/" + str(self.Config.CP)
         return DataText
 
     def getBuffText(self):
@@ -405,10 +424,10 @@ class MyFirstGUI:
         return BuffText
         
     def update_canvas(self):
-        self.canvas.coords(self.work_rec,(0, 0, self.work_now/self.workMax*self.window_width, 19))
-        self.canvas.coords(self.pro_rec,(0, 20, self.pro_now/self.proMax*self.window_width, 39))
-        self.canvas.coords(self.dur_rec,(0, 40, self.dur_now/self.dur*self.window_width, 59))
-        self.canvas.coords(self.CP_rec,(0, 60, self.CP_now/self.CP*self.window_width, 80))
+        self.canvas.coords(self.work_rec,(0, 0, self.work_now/self.Config.Progress*self.window_width, 19))
+        self.canvas.coords(self.pro_rec,(0, 20, self.pro_now/self.Config.Quality*self.window_width, 39))
+        self.canvas.coords(self.Durability_rec,(0, 40, self.Durability_now/self.Config.Durability*self.window_width, 59))
+        self.canvas.coords(self.CP_rec,(0, 60, self.now_CP/self.Config.CP*self.window_width, 80))
         self.master.update()
         
     def recommend(self):
@@ -424,7 +443,7 @@ class MyFirstGUI:
             
         if self.Stage == START:
             if self.ball == BAIQIU:
-                if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                     return "精修"
                 elif self.Chongjing == 0:
                     if self.work_eff < 2250:
@@ -438,7 +457,7 @@ class MyFirstGUI:
                     return "模范制作"
                     
             if self.ball == HONGQIU:
-                if (self.dur_now <= 10 and self.Jianyue == 0) or (self.dur_now <= 5 and self.Jianyue > 0):
+                if (self.Durability_now <= 10 and self.Jianyue == 0) or (self.Durability_now <= 5 and self.Jianyue > 0):
                     return "秘诀"
                 elif self.Chongjing == 0:
                     return "集中加工"
@@ -446,7 +465,7 @@ class MyFirstGUI:
                     return "集中制作"
                     
             if self.ball == LVQIU:
-                if self.dur_now <= 25:
+                if self.Durability_now <= 25:
                     return "精修"
                 elif self.Zhangwo == 0:
                     return "掌握"
@@ -456,7 +475,7 @@ class MyFirstGUI:
                     return "坯料加工"
                     
             if self.ball == LANQIU:
-                if self.dur_now <= 5 :
+                if self.Durability_now <= 5 :
                     return "精修"
                 elif self.Chongjing == 0:
                     return "仓促"
@@ -466,17 +485,17 @@ class MyFirstGUI:
                     return "模范制作"
                     
             if self.ball == DAJINZHAN:
-                if (self.dur_now <= 10 and self.Jianyue == 0) or (self.dur_now <= 5 and (self.Jianyue > 0)):
+                if (self.Durability_now <= 10 and self.Jianyue == 0) or (self.Durability_now <= 5 and (self.Jianyue > 0)):
                     return "精修"
                 else:
                     if self.Chongjing > 0:
                         if self.work_eff < self.work_eff_all - 1175:
                             return "高速制作"
                         elif self.work_eff < 2250:
-                            self.CP_now -= 1
+                            self.now_CP -= 1
                             return "最终确认+高速制作"
                         else:
-                            self.CP_now -= 1
+                            self.now_CP -= 1
                             return "最终确认+模范制作"
                     else:
                         if self.work_eff < 2250:
@@ -488,7 +507,7 @@ class MyFirstGUI:
                 if self.Chongjing == 0:
                     return "崇敬"
                 else:
-                    if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                    if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                         return "精修"
                     elif self.work_eff < 2250:
                         return "高速制作"
@@ -497,7 +516,7 @@ class MyFirstGUI:
             
         if self.Stage == PRO_FIN:
             if self.ball == BAIQIU:
-                if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                     return "精修"
                 elif self.Chongjing == 0:
                     if self.work_eff < 2250:
@@ -510,7 +529,7 @@ class MyFirstGUI:
                     return "模范制作"
                     
             if self.ball == HONGQIU:
-                if (self.dur_now <= 10 and self.Jianyue == 0) or (self.dur_now <= 5 and self.Jianyue > 0) or (self.Neijing == 11):
+                if (self.Durability_now <= 10 and self.Jianyue == 0) or (self.Durability_now <= 5 and self.Jianyue > 0) or (self.Neijing == 11):
                     return "秘诀"
                 elif self.Chongjing == 0:
                     return "集中加工"
@@ -518,7 +537,7 @@ class MyFirstGUI:
                     return "集中制作"
                     
             if self.ball == LVQIU:
-                if self.dur_now <= 25:
+                if self.Durability_now <= 25:
                     return "精修"
                 elif self.Zhangwo == 0:
                     return "掌握"
@@ -528,7 +547,7 @@ class MyFirstGUI:
                     return "坯料加工"
                     
             if self.ball == LANQIU:
-                if self.dur_now <= 5 :
+                if self.Durability_now <= 5 :
                     return "精修"
                 elif self.Chongjing == 0:
                     return "崇敬"
@@ -538,17 +557,17 @@ class MyFirstGUI:
                     return "模范制作"
                     
             if self.ball == DAJINZHAN:
-                if (self.dur_now <= 10 and self.Jianyue == 0) or (self.dur_now <= 5 and (self.Jianyue > 0)):
+                if (self.Durability_now <= 10 and self.Jianyue == 0) or (self.Durability_now <= 5 and (self.Jianyue > 0)):
                     return "精修"
                 else:
                     if self.Chongjing > 0:
                         if self.work_eff < self.work_eff_all - 1175:
                             return "高速制作"
                         elif self.work_eff < 2250:
-                            self.CP_now -= 1
+                            self.now_CP -= 1
                             return "最终确认+高速制作"
                         else:
-                            self.CP_now -= 1
+                            self.now_CP -= 1
                             return "最终确认+模范制作"
                     else:
                         if self.work_eff < 2250:
@@ -562,7 +581,7 @@ class MyFirstGUI:
                 if self.Chongjing == 0:
                     return "崇敬"
                 else:
-                    if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                    if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                         return "精修"
                     elif self.work_eff < 2250:
                         return "高速制作"
@@ -571,19 +590,19 @@ class MyFirstGUI:
                         
         if self.Stage == WORK_FIN:
             if self.ball == BAIQIU:
-                if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                     return "精修"
                 else:
                     return "仓促"
                     
             if self.ball == HONGQIU:
-                if (self.dur_now <= 10 and self.Jianyue == 0) or (self.dur_now <= 5 and self.Jianyue > 0):
+                if (self.Durability_now <= 10 and self.Jianyue == 0) or (self.Durability_now <= 5 and self.Jianyue > 0):
                     return "秘诀"
                 else:
                     return "集中加工"
                     
             if self.ball == LVQIU:
-                if self.dur_now <= 25:
+                if self.Durability_now <= 25:
                     return "精修"
                 elif self.Zhangwo == 0:
                     return "掌握"
@@ -593,13 +612,13 @@ class MyFirstGUI:
                     return "坯料加工"
                     
             if self.ball == LANQIU:
-                if self.dur_now <= 5 :
+                if self.Durability_now <= 5 :
                     return "精修"
                 else:
                     return "仓促"
                     
             if self.ball == DAJINZHAN:
-                if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                     return "精修"
                 else:
                     return "仓促"
@@ -608,24 +627,24 @@ class MyFirstGUI:
                 if self.Gaige == 0:
                     return "改革"
                 else:
-                    if (self.dur_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.dur_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
+                    if (self.Durability_now <= 20 and self.Zhangwo == 0 and self.Jianyue == 0) or (self.Durability_now <= 15 and (self.Jianyue > 0 or self.Zhangwo > 0)):
                         return "精修"
                     else:
                         return "仓促"
             
         if self.Stage == FINISH:
-            dur_all = self.dur_now + self.Zhangwo * 5
-            ret_text= "当前等效耐久：" + str(dur_all) + " 当前CP：" + str(self.CP_now) + "\n"
+            dur_all = self.Durability_now + self.Zhangwo * 5
+            ret_text= "当前等效耐久：" + str(dur_all) + " 当前CP：" + str(self.now_CP) + "\n"
             
-            if self.CP_now >= 389 and dur_all + (self.CP_now - 389) // 88 *30 >=56:
+            if self.now_CP >= 389 and dur_all + (self.now_CP - 389) // 88 *30 >=56:
                 ret_text += "阔步俭约双坯料+俭约加工+阔步坯料比尔格\n"
-            elif self.CP_now >= 374 and dur_all + (self.CP_now - 374) // 88 *30 >=46:
+            elif self.now_CP >= 374 and dur_all + (self.now_CP - 374) // 88 *30 >=46:
                 ret_text += "阔步俭约双坯料+俭约加工+阔步注视比尔格\n"
-            elif self.CP_now >= 364 and dur_all + (self.CP_now - 364) // 88 *30 >=51:
+            elif self.now_CP >= 364 and dur_all + (self.now_CP - 364) // 88 *30 >=51:
                 ret_text += "阔步俭约双坯料+阔步坯料比尔格\n"
-            elif self.CP_now >= 308 and dur_all + (self.CP_now - 308) // 88 *30 >=71:
+            elif self.now_CP >= 308 and dur_all + (self.now_CP - 308) // 88 *30 >=71:
                 ret_text += "阔步双坯料+阔步坯料比尔格\n"
-            elif self.CP_now >= 293 and dur_all + (self.CP_now - 293) // 88 *30 >=61:
+            elif self.now_CP >= 293 and dur_all + (self.now_CP - 293) // 88 *30 >=61:
                 ret_text += "阔步双坯料+阔步注视比尔格\n"
             else:
                 ret_text +="当前无推荐收尾，自行选择注视吊球或者倒掉重来\n"
@@ -638,7 +657,7 @@ class MyFirstGUI:
         
     def update_status(self):
         if self.Zhangwo > 0:
-            self.dur_now = min(55,self.dur_now+5)
+            self.Durability_now = min(55,self.Durability_now+5)
     
         self.Zhangwo = max(0, self.Zhangwo-1)
         self.Jianyue = max(0, self.Jianyue-1)
@@ -646,7 +665,7 @@ class MyFirstGUI:
         self.Gaige = max(0, self.Gaige-1)
         self.Guancha = max(0, self.Guancha-1)
         self.Kuobu = max(0, self.Kuobu-1)
-        self.Gongci += 1
+        self.Status.Step += 1
         
         self.update_canvas()
         
